@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <defs>
+    <linearGradient id="face" x1="40" y1="30" x2="120" y2="135" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d391cc"/>
+      <stop offset="1" stop-color="#8a6ad9"/>
+    </linearGradient>
+    <clipPath id="portrait"><circle cx="80" cy="80" r="49"/></clipPath>
+  </defs>
+  <ellipse cx="80" cy="80" rx="72" ry="25" transform="rotate(-28 80 80)" stroke="#d9bdf1" stroke-width="1.5"/>
+  <circle cx="80" cy="80" r="49" fill="url(#face)"/>
+  <g clip-path="url(#portrait)" fill="#583776">
+    <circle cx="80" cy="70" r="17"/>
+    <path d="M43 133v-14c0-21 16-31 37-31s37 10 37 31v14Z"/>
+  </g>
+  <circle cx="80" cy="80" r="49" stroke="#eedbff" stroke-opacity=".45"/>
+  <path d="M8 80a72 25 0 0 0 144 0" transform="rotate(-28 80 80)" stroke="#d9bdf1" stroke-width="1.5"/>
+  <path d="m143 38 2.4 6.6L152 47l-6.6 2.4L143 56l-2.4-6.6L134 47l6.6-2.4Z" fill="#f0d7ff"/>
+</svg>

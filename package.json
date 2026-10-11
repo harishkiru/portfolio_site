@@ -1,0 +1,21 @@
+{
+  "name": "harish-portfolio",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run compile && vite",
+    "compile": "tsc",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch",
+    "build": "npm run compile && node scripts/build.mjs",
+    "lint": "oxlint app.ts vite.config.js scripts --deny-warnings",
+    "check": "npm run build && npm run lint && node scripts/check-build.mjs && node scripts/check-routing.mjs",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "oxlint": "^1.81.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}
