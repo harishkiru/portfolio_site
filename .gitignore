@@ -19,6 +19,8 @@ backups/
 *.local.properties
 server/target/
 **/gallery-data/
+**/sharex-data/
+.wrangler/
 **/owner-credentials.local.properties
 **/owner-access.local.txt
 

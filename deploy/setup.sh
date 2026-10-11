@@ -16,4 +16,8 @@ if [[ ! -f secrets/lastfm.api-key ]]; then
     printf '%s' "$api_key" > secrets/lastfm.api-key
     unset api_key
 fi
+if [[ ! -f secrets/sharex.upload-token ]]; then
+    command -v openssl >/dev/null || { echo 'Install openssl first.' >&2; exit 1; }
+    openssl rand -hex 32 | tr -d '\n' > secrets/sharex.upload-token
+fi
 echo 'Setup complete. Review .env, then follow server/DEPLOYMENT.md.'

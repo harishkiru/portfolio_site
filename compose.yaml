@@ -14,11 +14,21 @@ services:
       LASTFM_USERNAME: ${LASTFM_USERNAME:-McGodFTW}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
       GALLERY_DIRECTORY: /data/gallery
+      SHAREX_HOST: ${SHAREX_HOST:-img.harishkiru.dev}
+      SHAREX_CAPACITY_BYTES: ${SHAREX_CAPACITY_BYTES:-10000000000}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_BUCKET: ${R2_BUCKET:-}
     secrets:
       - source: owner_password
         target: owner.password
       - source: lastfm_api_key
         target: lastfm.api-key
+      - source: sharex_upload_token
+        target: sharex.upload-token
+      - source: r2_access_key_id
+        target: r2.access-key-id
+      - source: r2_secret_access_key
+        target: r2.secret-access-key
     volumes:
       - gallery:/data
     read_only: true
@@ -39,6 +49,12 @@ secrets:
     file: ./secrets/owner.password
   lastfm_api_key:
     file: ./secrets/lastfm.api-key
+  sharex_upload_token:
+    file: ./secrets/sharex.upload-token
+  r2_access_key_id:
+    file: ./secrets/r2.access-key-id
+  r2_secret_access_key:
+    file: ./secrets/r2.secret-access-key
 volumes:
   gallery:
     name: harish-portfolio-gallery

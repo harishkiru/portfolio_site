@@ -73,6 +73,40 @@ docker compose -f compose.yaml -f compose.https.yaml up -d --no-build
 
 Use both `-f` arguments for subsequent Compose commands when using Caddy. It reaches `portfolio:8080` privately; the host backend port stays on localhost. Certificates persist in Caddy volumes.
 
+## ShareX with private Cloudflare R2 storage
+
+The VM accepts authenticated uploads at `https://harishkiru.dev/api/sharex/upload`. A separate Cloudflare Worker serves images from a private R2 bucket at `https://img.harishkiru.dev/IMAGE_ID`. Image downloads do not pass through the VM or its Tunnel. Keep the existing apex tunnel route; do not add an img route to the Tunnel.
+
+Create a dedicated `harish-sharex` bucket using Standard storage. Leave public access and r2.dev disabled. Create an R2 Account API token with Object Read & Write permission restricted to that bucket. Save its Access Key ID and Secret Access Key in `secrets/r2.access-key-id` and `secrets/r2.secret-access-key`, using an interactive hidden prompt and `umask 077`. Set `R2_ACCOUNT_ID` (32-character account ID from the S3 endpoint) and `R2_BUCKET=harish-sharex` in `.env`. See [R2 S3 setup](https://developers.cloudflare.com/r2/get-started/s3/).
+
+`deploy/start.sh` generates the separate ShareX upload token in `secrets/sharex.upload-token` and makes secret files mode 600, owned by UID 10001. Blank R2 credentials disable image uploads without stopping the portfolio. The R2 credentials never enter Git, the image, ShareX, or the browser.
+
+Deploy the read-only image Worker from `cloudflare/image-worker` using the Workers Free plan:
+
+```bash
+npm ci
+npm test
+npm run check
+npx wrangler login
+npm run deploy
+```
+
+Wrangler attaches the private `harish-sharex` bucket as binding `IMAGES` and adds custom domain `img.harishkiru.dev`. Disable any old img Tunnel route/DNS record first if it conflicts. Both workers.dev access and preview URLs are disabled. Worker request logs are disabled to avoid retaining screenshot links. Do not add Cache Everything rules or Always Online for the image hostname.
+
+Import `deploy/sharex.sxcu` into ShareX and replace its Authorization header placeholder with `Bearer YOUR_UPLOAD_TOKEN`. Populated SXCU files are credentials: keep them private and out of Git. Select Custom image uploader as the image destination. [ShareX custom uploaders](https://getsharex.com/docs/custom-uploader).
+
+Uploads use multipart field `file`, accept PNG/JPG/GIF/WebP up to 20 MB, and return JSON with `id` and `url`. Each ID uses 24 cryptographically random bytes encoded into 32 URL-safe characters (192 bits). Original filenames are not stored. The Worker serves only exact IDs, allows GET/HEAD, and has no listing or mutation endpoint. Headers include no-store, no-referrer, noindex and nosniff. Links stay available until deletion; anybody who receives one can save or share the screenshot. Crawlers can ignore noindex, so links are not authenticated private storage.
+
+Default storage cap is 10 GB (`SHAREX_CAPACITY_BYTES=10000000000`), matching R2 Standard's free storage allowance. The account-wide free tier also has operation limits; this storage cap is not a billing guarantee. Workers Free has its own daily request limit. Check Cloudflare usage regularly; other buckets share the R2 allowances. See [R2 pricing](https://developers.cloudflare.com/r2/pricing/) and [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/).
+
+Run one VM application instance and keep it the only writer for this dedicated bucket. Storage usage is reconciled from R2 on the first upload after restart and after failed operations. Uploads return 507 when the cap is reached. Delete an image using its ID:
+
+```bash
+bash deploy/delete-screenshot.sh IMAGE_ID_FROM_URL
+```
+
+Deletion immediately removes it from R2; previously saved copies cannot be revoked. The local gallery remains in the Docker volume. Back up screenshots separately from R2 if required; VM backups do not include R2 objects. To rotate a key, privately recreate its secret file, run `bash deploy/start.sh --tunnel`, force-recreate portfolio, and update ShareX if its upload token changed.
+
 ## Owner access
 
 Open `https://harishkiru.dev/owner` directly. The public site has no login panel. Authentication and CSRF protect uploads, caption/date edits, and deletion. Sessions expire after 30 minutes idle and reset on restart. Uploaded pictures are public.
@@ -93,7 +127,7 @@ docker run --rm --user 0 --entrypoint sh \
   -v harish-portfolio-gallery:/data \
   -v "$PWD/server/gallery-data:/source:ro" \
   harish-portfolio:local \
-  -c 'mkdir -p /data/gallery && cp -a /source/. /data/gallery/ && chown -R 10001:10001 /data/gallery'
+  -c 'mkdir -p /data/gallery && cp -a /source/. /data/gallery/ && chown -R 10001:10001 /data'
 docker compose start portfolio
 ```
 
@@ -124,7 +158,7 @@ docker run --rm --user 0 --entrypoint sh \
   -v harish-portfolio-gallery:/data \
   -v "$PWD/backups:/backup:ro" \
   harish-portfolio:local \
-  -c 'tar -xzf /backup/gallery.tar.gz -C /data && chown -R 10001:10001 /data/gallery'
+  -c 'tar -xzf /backup/gallery.tar.gz -C /data && chown -R 10001:10001 /data'
 docker compose up -d
 ```
 

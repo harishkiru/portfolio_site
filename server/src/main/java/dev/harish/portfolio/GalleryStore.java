@@ -117,7 +117,7 @@ public class GalleryStore {
         }
         return date;
     }
-    private static String imageType(byte[] bytes) {
+    static String imageType(byte[] bytes) {
         if (bytes.length >= 12) {
             if ((bytes[0] & 255) == 255 && (bytes[1] & 255) == 216 && (bytes[2] & 255) == 255) return "image/jpeg";
             if (bytes[0] == (byte) 137 && bytes[1] == 80 && bytes[2] == 78 && bytes[3] == 71

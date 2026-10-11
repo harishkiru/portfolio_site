@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "harish-sharex-images",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-11",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "img.harishkiru.dev", "custom_domain": true }
+  ],
+  "r2_buckets": [
+    { "binding": "IMAGES", "bucket_name": "harish-sharex" }
+  ],
+  "observability": { "enabled": false }
+}

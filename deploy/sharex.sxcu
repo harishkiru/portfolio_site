@@ -1,0 +1,13 @@
+{
+  "Version": "17.0.0",
+  "Name": "img.harishkiru.dev",
+  "DestinationType": "ImageUploader",
+  "RequestMethod": "POST",
+  "RequestURL": "https://harishkiru.dev/api/sharex/upload",
+  "Headers": {
+    "Authorization": "Bearer REPLACE_WITH_PRIVATE_UPLOAD_TOKEN"
+  },
+  "Body": "MultipartFormData",
+  "FileFormName": "file",
+  "URL": "{json:url}"
+}
