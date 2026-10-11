@@ -7,7 +7,7 @@ function headers() {
     'Referrer-Policy': 'no-referrer',
     'X-Robots-Tag': 'noindex, nofollow, noarchive, noimageindex',
     'X-Content-Type-Options': 'nosniff',
-    'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'; sandbox",
+    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; sandbox",
   });
 }
 
