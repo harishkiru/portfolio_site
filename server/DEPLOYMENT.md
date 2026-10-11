@@ -15,15 +15,44 @@ bash deploy/setup.sh
 
 Setup creates `.env` if absent, generates an owner password in `secrets/owner.password`, and prompts for your Last.fm key without echoing it. Save the owner password in your password manager. A blank Last.fm key leaves music unavailable but does not prevent startup.
 
-The host `secrets` directory is mode 700; files inside are readable by container UID 10001 through bind mounts. Preserve these permissions. Compose secrets are mounted files, not encrypted storage; protect VM backups. See [Compose secrets](https://docs.docker.com/compose/how-tos/use-secrets/) and [Spring configuration trees](https://docs.spring.io/spring-boot/reference/features/external-config.html#features.external-config.files.configtree).
+The host `secrets` directory is mode 700. `deploy/start.sh` sets application secret files to mode 600, owned by container UID 10001; the tunnel token uses UID 65532. Preserve these permissions. Compose secrets are mounted files, not encrypted storage; protect VM backups. See [Compose secrets](https://docs.docker.com/compose/how-tos/use-secrets/) and [Spring configuration trees](https://docs.spring.io/spring-boot/reference/features/external-config.html#features.external-config.files.configtree).
 
 Review `.env`. Username defaults to `harish`. Production requires a password of at least 16 characters, at most 72 UTF-8 bytes. Secrets, uploads, and local credentials never enter the image.
+
+## Cloudflare Tunnel (current deployment)
+
+The deployed checkout is `/home/webserver/apps/portfolio_site` on `webserver@10.0.0.72`. The app binds only to `127.0.0.1:8080`. Keep `SESSION_COOKIE_SECURE=true` and do not forward router ports for the website.
+
+In the [Cloudflare dashboard](https://dash.cloudflare.com), go to Networking > Tunnels and create `harish-portfolio`. Select Docker and copy only the token following `--token` in the install command. Save it from an interactive SSH terminal without putting it in shell history:
+
+```bash
+cd /home/webserver/apps/portfolio_site
+umask 077
+read -r -s -p 'Cloudflare tunnel token: ' cf_token
+printf '\n'
+printf '%s' "$cf_token" > secrets/cloudflare.tunnel-token
+unset cf_token
+bash deploy/start.sh --tunnel
+```
+
+Once the connector is healthy, add a published application route with domain `harishkiru.dev`, an empty subdomain, and service URL `http://portfolio:8080`. Cloudflare creates a proxied tunnel DNS record. If an existing apex A/AAAA record conflicts, replace only that website record; preserve mail and other service records. See [Cloudflare setup](https://developers.cloudflare.com/tunnel/get-started/).
+
+The connector uses outbound connections and exposes no host ports. This keeps the website origin out of current public DNS, but does not remove any previous IP exposures. The token stays outside Git and the image and is mounted as a private file. The connector image is pinned by digest; update that digest deliberately when updating cloudflared.
+
+Use both Compose files for status, logs, restarts, and shutdown:
+
+```bash
+docker compose -f compose.yaml -f compose.tunnel.yaml ps
+docker compose -f compose.yaml -f compose.tunnel.yaml logs --tail=50 cloudflared
+```
+
+For updates, back up the gallery, run `git pull --ff-only`, then `bash deploy/start.sh --tunnel`. To rotate a secret owned by a container UID, remove and recreate its file from the private directory with `umask 077`, then run the start script; do not make it world-readable. Container recreation preserves the gallery volume.
 
 ## Use your existing HTTPS proxy
 
 ```bash
 docker compose config --quiet
-docker compose up -d --build
+bash deploy/start.sh
 docker compose ps
 curl --fail http://127.0.0.1:8080/api/health
 ```
@@ -38,7 +67,8 @@ If you have no proxy, set `SITE_DOMAIN` in `.env`, point that domain's DNS to yo
 
 ```bash
 docker compose -f compose.yaml -f compose.https.yaml config --quiet
-docker compose -f compose.yaml -f compose.https.yaml up -d --build
+bash deploy/start.sh
+docker compose -f compose.yaml -f compose.https.yaml up -d --no-build
 ```
 
 Use both `-f` arguments for subsequent Compose commands when using Caddy. It reaches `portfolio:8080` privately; the host backend port stays on localhost. Certificates persist in Caddy volumes.
@@ -49,7 +79,7 @@ Open `https://harishkiru.dev/owner` directly. The public site has no login panel
 
 Optionally restrict `/owner`, `/api/login`, `/api/logout`, and non-GET requests under `/api/photos` to your LAN/VPN in the proxy. Keep public gallery GETs accessible. The password remains required.
 
-To rotate a password/API key, edit its file in `secrets/`, then run `docker compose up -d --force-recreate portfolio`.
+To rotate a password/API key, recreate its file in `secrets/` with `umask 077`, run `bash deploy/start.sh` (with `--tunnel` for Cloudflare), then force-recreate `portfolio` using the active Compose files.
 
 ## Import your existing gallery
 
@@ -103,7 +133,7 @@ docker compose up -d
 Back up first, copy updated source, then:
 
 ```bash
-docker compose up -d --build
+bash deploy/start.sh
 docker compose ps
 docker compose logs --tail=100 portfolio
 ```
@@ -112,4 +142,4 @@ The app runs non-root, with a read-only root filesystem, dropped capabilities, b
 
 For login issues check HTTPS, cookie setting, and proxy headers. For missing photos check the volume and ownership UID/GID 10001. For unavailable music check Last.fm's key. Never paste secret files in logs or public issues.
 
-Application tests and the JAR were checked locally. Docker is unavailable on the development computer, so verify the first actual container build/start on this VM before publishing: health reports UP, gallery loads, owner login/upload/date-edit/delete work, and an uploaded image survives container recreation.
+The production image was built on the Ubuntu VM with all 11 backend tests passing, and the running container reports UP. Before publishing, verify gallery rendering, owner login/upload/date-edit/delete, and persistence after container recreation.

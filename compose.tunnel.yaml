@@ -1,0 +1,25 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared@sha256:9b49eed8f62806d5d45ddf59ecefb5710429598ea6d3fcccd2af938f621b2b07
+    restart: unless-stopped
+    command: [tunnel, --no-autoupdate, run, --token-file, /run/secrets/cloudflare.tunnel-token]
+    secrets:
+      - source: cloudflare_tunnel_token
+        target: cloudflare.tunnel-token
+    depends_on:
+      portfolio:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+secrets:
+  cloudflare_tunnel_token:
+    file: ./secrets/cloudflare.tunnel-token

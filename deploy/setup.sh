@@ -16,5 +16,4 @@ if [[ ! -f secrets/lastfm.api-key ]]; then
     printf '%s' "$api_key" > secrets/lastfm.api-key
     unset api_key
 fi
-chmod 644 secrets/owner.password secrets/lastfm.api-key
 echo 'Setup complete. Review .env, then follow server/DEPLOYMENT.md.'
